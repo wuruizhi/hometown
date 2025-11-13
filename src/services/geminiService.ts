@@ -1,6 +1,5 @@
 // Use relative paths that will be intercepted by the Vite proxy
 const VLLM_CHAT_ENDPOINT = '/vllm-api/v1/chat/completions';
-const VLLM_COMPLETIONS_ENDPOINT = '/vllm-api/v1/completions';
 const MODEL_NAME = "/home/ubuntu/data/LLM_base_models/Qwen/Qwen2.5-1.5B";
 
 /**
@@ -85,24 +84,29 @@ export async function generateWorldDescription(base64Image: string, mimeType: st
 }
 
 /**
- * Generates a text response using the completions endpoint, which expects a simple 'prompt'.
+ * Generates a text response using the chat completions endpoint.
  * This is used for the text chat test module.
  */
 export async function generateChatResponse(prompt: string): Promise<string> {
     const payload = {
       model: MODEL_NAME,
-      prompt: prompt, // Use 'prompt' instead of 'messages'
+      messages: [ // Use 'messages' array
+        {
+          role: 'user',
+          content: prompt,
+        },
+      ],
       max_tokens: 1500,
       temperature: 0.7,
     };
 
-    const data = await postToVllm(VLLM_COMPLETIONS_ENDPOINT, payload);
+    // Use the chat endpoint for all calls
+    const data = await postToVllm(VLLM_CHAT_ENDPOINT, payload);
 
-    // The 'completions' endpoint returns 'text' instead of 'message.content'
-    if (data.choices?.[0]?.text) {
-        return data.choices[0].text.trim();
+    if (data.choices?.[0]?.message?.content) {
+        return data.choices[0].message.content.trim();
     } else {
-        console.error("来自 vLLM 的补全响应结构意外:", data);
-        throw new Error("解析 vLLM 补全响应失败。");
+        console.error("来自 vLLM 的聊天响应结构意外:", data);
+        throw new Error("解析 vLLM 聊天响应失败。");
     }
 }
