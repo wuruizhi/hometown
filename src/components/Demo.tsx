@@ -47,7 +47,11 @@ export const Demo: React.FC = () => {
       const description = await generateWorldDescription(base64, mimeType);
       setGeneratedDescription(description);
     } catch (err) {
-      setError('生成描述时发生错误，请稍后重试。');
+      let errorMessage = '生成描述时发生错误，请稍后重试。';
+      if (err instanceof Error && (err.message.includes('429') || err.message.toLowerCase().includes('quota'))) {
+          errorMessage = '您的请求过于频繁，已超出当前配额。请稍等片刻后再试。';
+      }
+      setError(errorMessage);
       console.error(err);
     } finally {
       setIsLoading(false);
