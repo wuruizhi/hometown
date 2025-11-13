@@ -1,5 +1,6 @@
 // Use relative paths that will be intercepted by the Vite proxy
 const VLLM_CHAT_ENDPOINT = '/vllm-api/v1/chat/completions';
+const VLLM_GENERATE_ENDPOINT = '/vllm-api/generate'; // The native vLLM endpoint
 const MODEL_NAME = "/home/ubuntu/data/LLM_base_models/Qwen/Qwen2.5-1.5B";
 
 /**
@@ -39,8 +40,11 @@ async function postToVllm(endpoint: string, payload: object): Promise<any> {
 }
 
 /**
- * Generates a world description from an image using the chat completions endpoint,
- * as this is required for multimodal input.
+ * Generates a world description from an image.
+ * IMPORTANT: This function requires the OpenAI-compatible vLLM server
+ * (`vllm.entrypoints.openai.api_server`) because the native `/generate`
+ * endpoint does not support multimodal (image + text) inputs.
+ * This will likely fail with the current server setup.
  */
 export async function generateWorldDescription(base64Image: string, mimeType: string): Promise<string> {
   const payload = {
@@ -84,29 +88,26 @@ export async function generateWorldDescription(base64Image: string, mimeType: st
 }
 
 /**
- * Generates a text response using the chat completions endpoint.
+ * Generates a text response using the native vLLM /generate endpoint.
  * This is used for the text chat test module.
  */
 export async function generateChatResponse(prompt: string): Promise<string> {
     const payload = {
-      model: MODEL_NAME,
-      messages: [ // Use 'messages' array
-        {
-          role: 'user',
-          content: prompt,
-        },
-      ],
+      prompt: prompt,
+      n: 1, // Added to match the working Python client
       max_tokens: 1500,
       temperature: 0.7,
     };
 
-    // Use the chat endpoint for all calls
-    const data = await postToVllm(VLLM_CHAT_ENDPOINT, payload);
+    // Use the native /generate endpoint
+    const data = await postToVllm(VLLM_GENERATE_ENDPOINT, payload);
 
-    if (data.choices?.[0]?.message?.content) {
-        return data.choices[0].message.content.trim();
+    // The native endpoint returns text in a different structure
+    if (data.text?.[0]) {
+        // We often get the prompt returned as well, so we remove it.
+        return data.text[0].replace(prompt, '').trim();
     } else {
-        console.error("来自 vLLM 的聊天响应结构意外:", data);
-        throw new Error("解析 vLLM 聊天响应失败。");
+        console.error("来自 vLLM 的原生响应结构意外:", data);
+        throw new Error("解析 vLLM 原生响应失败。");
     }
 }
