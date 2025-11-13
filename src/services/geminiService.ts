@@ -1,9 +1,17 @@
-const VLLM_API_ENDPOINT = 'http://localhost:8001/v1/chat/completions';
+// Use relative paths that will be intercepted by the Vite proxy
+const VLLM_CHAT_ENDPOINT = '/vllm-api/v1/chat/completions';
+const VLLM_COMPLETIONS_ENDPOINT = '/vllm-api/v1/completions';
 const MODEL_NAME = "/home/ubuntu/data/LLM_base_models/Qwen/Qwen2.5-1.5B";
 
-async function handleVllmRequest(payload: object): Promise<string> {
+/**
+ * A generic handler for making POST requests to the vLLM server.
+ * @param endpoint The API endpoint to hit (e.g., /v1/chat/completions).
+ * @param payload The JSON payload to send.
+ * @returns The JSON response from the server.
+ */
+async function postToVllm(endpoint: string, payload: object): Promise<any> {
   try {
-    const response = await fetch(VLLM_API_ENDPOINT, {
+    const response = await fetch(endpoint, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -17,18 +25,12 @@ async function handleVllmRequest(payload: object): Promise<string> {
         throw new Error(`vLLM 服务器返回错误: ${response.status} ${response.statusText}`);
     }
 
-    const data = await response.json();
-
-    if (data.choices && data.choices[0] && data.choices[0].message && data.choices[0].message.content) {
-        return data.choices[0].message.content.trim();
-    } else {
-        console.error("来自 vLLM 的响应结构意外:", data);
-        throw new Error("解析 vLLM 服务器响应失败。");
-    }
+    return response.json();
   } catch (error) {
     console.error("调用本地 vLLM API 时出错:", error);
     if (error instanceof TypeError && error.message.includes('Failed to fetch')) {
-        throw new Error("无法连接到本地 vLLM 服务器。请确保服务正在运行，并且已启用跨域资源共享 (CORS)。您可能需要在启动脚本中添加 --cors-allowed-origins \"*\" 参数。");
+        // With the proxy, the problem is likely that the server is down.
+        throw new Error("无法连接到本地 vLLM 服务器。请确保您的 vLLM 服务正在 http://localhost:8001 上运行, 并且检查启动服务的终端窗口是否有错误信息。");
     }
     if (error instanceof Error) {
         throw new Error(`调用 vLLM 服务失败: ${error.message}`);
@@ -37,6 +39,10 @@ async function handleVllmRequest(payload: object): Promise<string> {
   }
 }
 
+/**
+ * Generates a world description from an image using the chat completions endpoint,
+ * as this is required for multimodal input.
+ */
 export async function generateWorldDescription(base64Image: string, mimeType: string): Promise<string> {
   const payload = {
     model: MODEL_NAME,
@@ -67,20 +73,36 @@ export async function generateWorldDescription(base64Image: string, mimeType: st
     max_tokens: 1500,
     temperature: 0.7,
   };
-  return handleVllmRequest(payload);
+  
+  const data = await postToVllm(VLLM_CHAT_ENDPOINT, payload);
+
+  if (data.choices?.[0]?.message?.content) {
+      return data.choices[0].message.content.trim();
+  } else {
+      console.error("来自 vLLM 的聊天响应结构意外:", data);
+      throw new Error("解析 vLLM 聊天响应失败。");
+  }
 }
 
+/**
+ * Generates a text response using the completions endpoint, which expects a simple 'prompt'.
+ * This is used for the text chat test module.
+ */
 export async function generateChatResponse(prompt: string): Promise<string> {
     const payload = {
       model: MODEL_NAME,
-      messages: [
-        {
-          "role": "user",
-          "content": prompt,
-        }
-      ],
+      prompt: prompt, // Use 'prompt' instead of 'messages'
       max_tokens: 1500,
       temperature: 0.7,
     };
-    return handleVllmRequest(payload);
+
+    const data = await postToVllm(VLLM_COMPLETIONS_ENDPOINT, payload);
+
+    // The 'completions' endpoint returns 'text' instead of 'message.content'
+    if (data.choices?.[0]?.text) {
+        return data.choices[0].text.trim();
+    } else {
+        console.error("来自 vLLM 的补全响应结构意外:", data);
+        throw new Error("解析 vLLM 补全响应失败。");
+    }
 }
