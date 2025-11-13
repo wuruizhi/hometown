@@ -16,7 +16,7 @@ export const Demo: React.FC = () => {
   const [imagePreview, setImagePreview] = useState<string | null>(null);
   const [generatedDescription, setGeneratedDescription] = useState<string>('');
   const [isLoading, setIsLoading] = useState<boolean>(false);
-  const [error, setError] = useState<string>('');
+  const [error, setError] = useState<React.ReactNode | null>(null);
 
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -28,7 +28,7 @@ export const Demo: React.FC = () => {
       };
       reader.readAsDataURL(file);
       setGeneratedDescription('');
-      setError('');
+      setError(null);
     }
   };
 
@@ -39,7 +39,7 @@ export const Demo: React.FC = () => {
     }
 
     setIsLoading(true);
-    setError('');
+    setError(null);
     setGeneratedDescription('');
 
     try {
@@ -47,11 +47,11 @@ export const Demo: React.FC = () => {
       const description = await generateWorldDescription(base64, mimeType);
       setGeneratedDescription(description);
     } catch (err) {
-      let errorMessage = '生成描述时发生错误，请稍后重试。';
-      if (err instanceof Error && (err.message.includes('429') || err.message.toLowerCase().includes('quota'))) {
-          errorMessage = '您的请求过于频繁，已超出当前配额。请稍等片刻后再试。';
+      if (err instanceof Error) {
+        setError(err.message);
+      } else {
+        setError('发生未知错误，请检查控制台。');
       }
-      setError(errorMessage);
       console.error(err);
     } finally {
       setIsLoading(false);
@@ -112,7 +112,7 @@ export const Demo: React.FC = () => {
                 {generatedDescription ? (
                   <p className="whitespace-pre-wrap">{generatedDescription}</p>
                 ) : (
-                  !isLoading && <p className="text-slate-500">AI 生成的关于这个 3D 世界的详细描述将会出现在这里...</p>
+                  !isLoading && !error && <p className="text-slate-500">AI 生成的关于这个 3D 世界的详细描述将会出现在这里...</p>
                 )}
               </div>
             </div>
