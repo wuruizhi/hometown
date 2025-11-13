@@ -1,6 +1,7 @@
 import React, { useState, useCallback } from 'react';
 import { generateWorldDescription } from '../services/geminiService';
 import { fileToBase64 } from '../utils/fileUtils';
+import { TextChat } from './TextChat';
 
 const LoadingSpinner: React.FC = () => (
   <div className="flex items-center justify-center space-x-2">
@@ -70,7 +71,7 @@ export const Demo: React.FC = () => {
           <div className="grid grid-cols-1 md:grid-cols-2 gap-8 items-start">
             {/* Input and Preview */}
             <div className="flex flex-col gap-4 p-6 bg-slate-800 rounded-lg border border-slate-700">
-              <label htmlFor="image-upload" className="block text-lg font-semibold text-white">上传您的照片</label>
+              <label htmlFor="image-upload" className="block text-lg font-semibold text-white">1. 上传您的照片</label>
               <div className="mt-2 flex justify-center px-6 pt-5 pb-6 border-2 border-slate-600 border-dashed rounded-md">
                 <div className="space-y-1 text-center">
                   <svg className="mx-auto h-12 w-12 text-slate-500" stroke="currentColor" fill="none" viewBox="0 0 48 48" aria-hidden="true">
@@ -105,7 +106,7 @@ export const Demo: React.FC = () => {
 
             {/* Output */}
             <div className="p-6 bg-slate-800 rounded-lg border border-slate-700 min-h-[300px] flex flex-col">
-              <h3 className="text-lg font-semibold text-white mb-4">AI 的创世蓝图</h3>
+              <h3 className="text-lg font-semibold text-white mb-4">2. AI 的创世蓝图</h3>
               <div className="flex-grow prose prose-sm prose-invert max-w-none text-slate-300">
                 {isLoading && <LoadingSpinner />}
                 {error && <p className="text-red-400">{error}</p>}
@@ -118,6 +119,15 @@ export const Demo: React.FC = () => {
             </div>
           </div>
         </div>
+        
+        <div className="max-w-4xl mx-auto mt-16">
+          <div className="text-center mb-12">
+            <h2 className="text-2xl font-bold tracking-tight text-white">或尝试纯文本对话 (测试通道)</h2>
+             <p className="mt-3 text-base text-slate-400 max-w-2xl mx-auto">在这里直接与您的 vLLM 模型聊天，以验证连接是否正常。</p>
+          </div>
+          <TextChat />
+        </div>
+
       </div>
     </section>
   );
