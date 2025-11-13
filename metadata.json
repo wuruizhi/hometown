@@ -1,0 +1,5 @@
+{
+  "name": "故乡重现 (Hometown Reborn)",
+  "description": "一款受 Marble 启发的应用，能够将您老家的照片转化为一个逼真、可探索的 3D 世界。上传一张照片，让 AI 为您描绘出数字化的故乡记忆。 (An app inspired by Marble that transforms photos of your hometown into a realistic, explorable 3D world. Upload a photo and let AI paint a digital memory of your home.)",
+  "requestFramePermissions": []
+}
